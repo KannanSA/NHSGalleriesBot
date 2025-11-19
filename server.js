@@ -22,6 +22,11 @@ const __dirname = path.dirname(__filename);
 // Serve the static frontend (index.html + assets) from this directory
 app.use(express.static(__dirname));
 
+// Explicitly serve index.html for root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Set up OpenAI client with validation
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 if (!OPENAI_API_KEY) {
