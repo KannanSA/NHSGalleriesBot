@@ -1,11 +1,16 @@
 // server.js
-import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
 import { fileURLToPath } from "url";
 import { google } from "googleapis";
+
+// Only load dotenv in non-production (Vercel uses environment variables)
+if (process.env.NODE_ENV !== 'production') {
+  const dotenv = await import('dotenv');
+  dotenv.config();
+}
 
 const app = express();
 app.use(cors());
@@ -187,7 +192,13 @@ app.post("/api/chatgpt", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Server listening on http://localhost:" + PORT);
-});
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log("Server listening on http://localhost:" + PORT);
+  });
+}
+
+// Export for Vercel serverless
+export default app;
