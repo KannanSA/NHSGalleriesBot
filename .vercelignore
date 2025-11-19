@@ -1,0 +1,10 @@
+node_modules
+.env
+.env.example
+*.log
+.DS_Store
+.vscode
+QUICKSTART.md
+GOOGLE_SHEETS_SETUP.md
+VOICE_MODE_GUIDE.md
+google-sheets-script.gs
