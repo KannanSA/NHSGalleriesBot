@@ -22,10 +22,15 @@ const __dirname = path.dirname(__filename);
 // Serve the static frontend (index.html + assets) from this directory
 app.use(express.static(__dirname));
 
-// Set up OpenAI client
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Set up OpenAI client with validation
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+if (!OPENAI_API_KEY) {
+  console.error('WARNING: OPENAI_API_KEY is not set. ChatGPT features will not work.');
+}
+
+const client = OPENAI_API_KEY ? new OpenAI({
+  apiKey: OPENAI_API_KEY,
+}) : null;
 
 // Set up Google Sheets
 const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
@@ -112,6 +117,22 @@ function clampText(text, max = 2000) {
   return s.length > max ? s.slice(0, max) : s;
 }
 
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  const status = {
+    server: "running",
+    openai: !!client ? "configured" : "missing API key",
+    googleSheets: !!sheetsClient ? "configured" : "missing credentials",
+    environment: {
+      OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+      GOOGLE_SHEETS_ID: !!process.env.GOOGLE_SHEETS_ID,
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      GOOGLE_PRIVATE_KEY: !!process.env.GOOGLE_PRIVATE_KEY
+    }
+  };
+  res.json(status);
+});
+
 app.post("/api/save-chat", async (req, res) => {
   try {
     const { data } = req.body || {};
@@ -129,6 +150,12 @@ app.post("/api/save-chat", async (req, res) => {
 
 app.post("/api/chatgpt", async (req, res) => {
   try {
+    if (!client) {
+      return res.status(503).json({ 
+        error: "OpenAI API is not configured. Please set OPENAI_API_KEY environment variable." 
+      });
+    }
+
     const { context, history, userMessage } = req.body || {};
     if (!userMessage) {
       return res.status(400).json({ error: "userMessage is required" });
