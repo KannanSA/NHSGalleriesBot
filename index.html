@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Primary Care Mental Health Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #0f172a;
+      background-color: #f4f4f5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top left, #e0e7ff, #f9fafb 45%, #f4f4f5);
+      padding: 16px;
+    }
+
+    .chat-shell {
+      width: 100%;
+      max-width: 480px;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    .chat-header {
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #f9fafb;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-header-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .chat-header-main {
+      flex: 1;
+    }
+
+    .chat-header-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .chat-header-subtitle {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .avatar-panel {
+      padding: 10px 14px 12px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .avatar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .avatar-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .avatar-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .avatar-status {
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .avatar-toggle-btn {
+      border-radius: 999px;
+      border: 1px solid #4f46e5;
+      padding: 6px 10px;
+      font-size: 12px;
+      background: #4f46e5;
+      color: #f9fafb;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 6px 14px rgba(79, 70, 229, 0.3);
+      transition: background 0.15s ease, transform 0.08s ease,
+        box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    .avatar-toggle-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .avatar-toggle-btn:hover:not(:disabled) {
+      background: #4338ca;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+    }
+
+    .avatar-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 140px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .avatar-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10a37f, #1a7f64);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
+      transition: transform 0.15s ease;
+    }
+
+    .avatar-circle.talking {
+      animation: pulse 0.6s ease-in-out infinite;
+    }
+
+    .avatar-circle.listening {
+      animation: listening 1.5s ease-in-out infinite;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.15);
+      }
+    }
+
+    @keyframes listening {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      }
+      50% {
+        transform: scale(1.08);
+        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
+      }
+    }
+
+    .avatar-icon {
+      font-size: 36px;
+      color: #ffffff;
+    }
+
+    .avatar-note {
+      margin: 6px 0 0;
+      font-size: 11px;
+      color: #6b7280;
+      line-height: 1.4;
+    }
+
+    .voice-controls {
+      display: none;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .voice-controls.active {
+      display: flex;
+    }
+
+    .voice-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: none;
+      background: #4f46e5;
+      color: #ffffff;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .voice-btn:hover {
+      background: #4338ca;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+    }
+
+    .voice-btn:active {
+      transform: translateY(0);
+    }
+
+    .voice-btn.recording {
+      background: #dc2626;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .voice-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .chat-log {
+      flex: 1;
+      padding: 14px 14px 8px;
+      overflow-y: auto;
+      background: #f9fafb;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      max-width: 88%;
+      margin-bottom: 10px;
+      padding: 9px 11px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .message.bot {
+      background: #ffffff;
+      align-self: flex-start;
+      border-radius: 14px 14px 14px 4px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .message.user {
+      background: #4f46e5;
+      color: #f9fafb;
+      align-self: flex-end;
+      border-radius: 14px 14px 4px 14px;
+    }
+
+    .quick-replies {
+      display: none;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 0 12px 8px;
+      border-top: 1px solid #e5e7eb;
+      background: #ffffff;
+    }
+
+    .quick-chip {
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      padding: 5px 10px;
+      font-size: 12px;
+      background: #ffffff;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.08s ease;
+    }
+
+    .quick-chip:hover {
+      background: #eef2ff;
+      transform: translateY(-1px);
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px 10px;
+      border-top: 1px solid #e5e7eb;
+      background: #ffffff;
+    }
+
+    .input-row input[type="text"] {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      padding: 8px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .input-row input[type="text"]:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.3);
+    }
+
+    .input-row button[type="submit"] {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #4f46e5;
+      color: #f9fafb;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 8px 18px rgba(79, 70, 229, 0.35);
+      transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease;
+    }
+
+    .input-row button[type="submit"]:hover {
+      background: #4338ca;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(79, 70, 229, 0.4);
+    }
+
+    .input-row button[type="submit"]:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .chat-footer-note {
+      padding: 4px 16px 10px;
+      font-size: 11px;
+      color: #6b7280;
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-shell" id="mh-chatbot">
+    <header class="chat-header">
+      <div class="chat-header-avatar" aria-hidden="true">💬</div>
+      <div class="chat-header-main">
+        <div class="chat-header-title">Mental Health Support Bot</div>
+        <div class="chat-header-subtitle">For common stress, anxiety & low mood (adults only)</div>
+      </div>
+    </header>
+
+    <!-- Avatar / virtual doctor panel -->
+    <section class="avatar-panel">
+      <div class="avatar-header">
+        <div class="avatar-header-left">
+          <span class="avatar-title">Virtual Assistant</span>
+          <span class="avatar-status" id="avatar-status">Ready</span>
+        </div>
+        <button
+          type="button"
+          class="avatar-toggle-btn"
+          id="avatar-toggle-btn"
+        >
+          Talk to the avatar doctor
+        </button>
+      </div>
+      <div class="avatar-container">
+        <div class="avatar-circle" id="avatar-circle">
+          <div class="avatar-icon">💬</div>
+        </div>
+      </div>
+      <div class="voice-controls" id="voice-controls">
+        <button type="button" class="voice-btn" id="voice-input-btn" title="Press to speak">
+          🎤
+        </button>
+        <button type="button" class="voice-btn" id="stop-voice-btn" title="Stop speaking" style="display: none;">
+          🔇
+        </button>
+      </div>
+      <p class="avatar-note">
+        This is an optional virtual avatar, not a real doctor. Click "Talk to avatar doctor" to enable voice chat. It cannot provide emergency care.
+      </p>
+    </section>
+
+    <div class="chat-log" id="chat-log"></div>
+
+    <div class="quick-replies" id="quick-replies"></div>
+
+    <form class="input-row" id="input-form">
+      <input
+        type="text"
+        id="user-input"
+        autocomplete="off"
+        placeholder="Type your answer, or tap a suggestion..."
+      />
+      <button type="submit" id="send-btn">
+        Send
+        <span aria-hidden="true">➤</span>
+      </button>
+    </form>
+
+    <div class="chat-footer-note">
+      This chatbot cannot provide emergency help or a formal diagnosis. If you are in crisis or feel unsafe,
+      contact emergency services or your local crisis team.
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const chatLog = document.getElementById("chat-log");
+      const quickRepliesEl = document.getElementById("quick-replies");
+      const form = document.getElementById("input-form");
+      const input = document.getElementById("user-input");
+      const sendBtn = document.getElementById("send-btn");
+
+      const avatarToggleBtn = document.getElementById("avatar-toggle-btn");
+      const avatarCircle = document.getElementById("avatar-circle");
+      const avatarStatus = document.getElementById("avatar-status");
+      const voiceControls = document.getElementById("voice-controls");
+      const voiceInputBtn = document.getElementById("voice-input-btn");
+      const stopVoiceBtn = document.getElementById("stop-voice-btn");
+
+      // Voice chat state
+      let recognition = null;
+      let speechSynthesis = window.speechSynthesis;
+      let currentUtterance = null;
+      let isListening = false;
+      let isSpeaking = false;
+      let micStream = null;
+      let noSpeechAttempts = 0;
+      const MAX_NO_SPEECH_ATTEMPTS = 3;
+
+      const data = {
+        ageOver18: null,
+        risk: { q1: null, q2: null, q3: null },
+        ice: { story: "", ideas: "", concerns: "", expectations: "" },
+        history: {
+          duration: null,
+          triggers: "",
+          impact: null,
+          support: null,
+          substances: null,
+        },
+        phq9: [],
+        phq9Impact: null,
+        gad7: [],
+        gad7Impact: null,
+      };
+
+      let currentQuestion = null;
+      let chatActive = true;
+      let chatMode = "structured"; // "structured" or "avatar"
+      let sessionLocked = false;   // true if crisis / under-18
+      let avatarChatEnabled = true;  // Avatar chat always available  // Avatar chat always available
+      const avatarChatHistory = [];
+      const sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+      const yesNoOptions = [
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+      ];
+
+      const phq9Questions = [
+        "Little interest or pleasure in doing things",
+        "Feeling down, depressed, or hopeless",
+        "Trouble falling or staying asleep, or sleeping too much",
+        "Feeling tired or having little energy",
+        "Poor appetite or overeating",
+        "Feeling bad about yourself – or that you are a failure or have let yourself or your family down",
+        "Trouble concentrating on things, such as reading or watching television",
+        "Moving or speaking so slowly that other people could have noticed, or being so fidgety or restless that you've been moving around a lot more than usual",
+        "Thoughts that you would be better off dead, or of hurting yourself in some way",
+      ];
+
+      const gad7Questions = [
+        "Feeling nervous, anxious, or on edge",
+        "Not being able to stop or control worrying",
+        "Worrying too much about different things",
+        "Trouble relaxing",
+        "Being so restless that it's hard to sit still",
+        "Becoming easily annoyed or irritable",
+        "Feeling afraid as if something awful might happen",
+      ];
+
+      function appendMessage(text, sender = "bot") {
+        const wrapper = document.createElement("div");
+        wrapper.className = "message " + sender;
+        wrapper.innerHTML = text.replace(/\n/g, "<br/>");
+        chatLog.appendChild(wrapper);
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+
+      function setQuickReplies(options) {
+        quickRepliesEl.innerHTML = "";
+        if (!options || !options.length) {
+          quickRepliesEl.style.display = "none";
+          return;
+        }
+        quickRepliesEl.style.display = "flex";
+        options.forEach((opt) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "quick-chip";
+          btn.textContent = opt.label;
+          btn.addEventListener("click", () => {
+            handleUserInput(opt.value, opt.label);
+          });
+          quickRepliesEl.appendChild(btn);
+        });
+      }
+
+      function disableInput(lock = false) {
+        chatActive = false;
+        input.disabled = true;
+        sendBtn.disabled = true;
+        setQuickReplies([]);
+        if (lock) {
+          sessionLocked = true;
+        }
+      }
+
+      function handleUserInput(value, displayText) {
+        const raw = value != null ? value.toString().trim() : "";
+        if (!raw) return;
+
+        const shown = (displayText ?? raw).toString().trim();
+        if (shown) {
+          appendMessage(shown, "user");
+        }
+
+        if (chatMode === "avatar") {
+          handleAvatarChat(raw);
+          return;
+        }
+
+        if (!chatActive || !currentQuestion) return;
+        currentQuestion.onAnswer(raw);
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        handleUserInput(text);
+      });
+
+      function ask(config) {
+        currentQuestion = config;
+        appendMessage(config.text);
+        setQuickReplies(config.options || []);
+        input.placeholder = config.placeholder || "Type your answer, or tap a suggestion...";
+      }
+
+      function parseScaleAnswer(value, min, max) {
+        const n = parseInt(value, 10);
+        if (Number.isNaN(n) || n < min || n > max) {
+          appendMessage("Please answer with a number between " + min + " and " + max + ".");
+          return null;
+        }
+        return n;
+      }
+
+      // ------------------ Avatar controls ------------------
+
+      if (avatarToggleBtn) {
+        avatarToggleBtn.addEventListener("click", () => {
+          if (sessionLocked) {
+            appendMessage(
+              "Because of earlier safety concerns, I can’t continue chatting, even in avatar mode. Please contact a human professional instead."
+            );
+            return;
+          }
+
+          // Avatar chat is now always available
+
+          if (chatMode === "avatar") {
+            chatMode = "structured";
+            avatarToggleBtn.textContent = "Talk to the avatar doctor";
+            avatarStatus.textContent = "Ready";
+            input.placeholder = "Type your answer, or tap a suggestion...";
+            voiceControls.classList.remove("active");
+            isListening = false;
+            stopVoiceRecognition();
+            stopSpeaking();
+            return;
+          }
+
+          enableAvatarChat();
+        });
+      }
+
+      async function ensureMicrophoneAccess() {
+        if (micStream) {
+          console.log('Mic stream already active');
+          return true;
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          appendMessage('⚠️ Microphone access is not supported in this browser. Please type your message instead.');
+          return false;
+        }
+
+        try {
+          console.log('Requesting microphone access...');
+          micStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            } 
+          });
+          console.log('Microphone access granted:', micStream.getTracks());
+          
+          // Check if mic is actually capturing audio
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioContext.createMediaStreamSource(micStream);
+          const analyser = audioContext.createAnalyser();
+          source.connect(analyser);
+          
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteTimeDomainData(dataArray);
+          console.log('Audio level check:', dataArray.slice(0, 10));
+          
+          return true;
+        } catch (err) {
+          console.error('Microphone access denied:', err);
+          appendMessage('⚠️ Could not access your microphone: ' + err.message);
+          avatarStatus.textContent = 'Allow microphone access to use voice chat.';
+          return false;
+        }
+      }
+
+      function releaseMicrophone() {
+        if (micStream) {
+          micStream.getTracks().forEach((track) => track.stop());
+          micStream = null;
+        }
+      }
+
+      // Voice input setup
+      function initVoiceRecognition() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          console.log('Speech recognition not supported');
+          return false;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          console.log('Recognition started');
+          isListening = true;
+          avatarCircle.classList.add('listening');
+          avatarCircle.classList.remove('talking');
+          voiceInputBtn.classList.add('recording');
+          avatarStatus.textContent = 'Listening...';
+        };
+
+        recognition.onresult = (event) => {
+          console.log('Recognition result received');
+          console.log('Results:', event.results);
+          
+          const transcript = event.results[0][0].transcript;
+          const confidence = event.results[0][0].confidence;
+          
+          console.log('Transcript:', transcript, 'Confidence:', confidence);
+          
+          if (transcript.trim()) {
+            noSpeechAttempts = 0;
+            isListening = false;
+
+            // Display user's message
+            appendMessage(transcript, 'user');
+            
+            // Process in avatar mode
+            if (chatMode === 'avatar') {
+              console.log('Calling handleAvatarChat');
+              handleAvatarChat(transcript);
+            } else {
+              console.log('Calling handleUserInput');
+              handleUserInput(transcript);
+            }
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          
+          // Handle repeated no-speech errors by stopping after a few attempts
+          if (event.error === 'no-speech') {
+            noSpeechAttempts += 1;
+            console.log('No speech detected (attempt ' + noSpeechAttempts + ')');
+            if (noSpeechAttempts >= MAX_NO_SPEECH_ATTEMPTS) {
+              console.log('Max no-speech attempts reached, stopping recognition');
+              appendMessage('⚠️ Your microphone is not picking up any audio. Please check:\n\n' +
+                '• Windows Settings → Privacy → Microphone is enabled\n' +
+                '• Your browser has microphone permission\n' +
+                '• The correct microphone is selected in Windows Sound settings\n' +
+                '• Your microphone is not muted\n\n' +
+                'Or type your message instead.');
+              isListening = false;
+              stopVoiceRecognition();
+            } else {
+              avatarStatus.textContent = 'No speech heard (attempt ' + noSpeechAttempts + '/' + MAX_NO_SPEECH_ATTEMPTS + ')...';
+            }
+            return;
+          }
+          
+          isListening = false;
+          stopVoiceRecognition();
+          
+          let errorMsg = 'Voice input error: ';
+          switch(event.error) {
+            case 'audio-capture':
+              errorMsg += 'Microphone not found or not working.';
+              break;
+            case 'not-allowed':
+              errorMsg += 'Microphone permission denied. Please allow microphone access in your browser settings.';
+              break;
+            case 'network':
+              errorMsg += 'Network error. Check your internet connection.';
+              break;
+            case 'aborted':
+              // User stopped it, don't show error
+              return;
+            default:
+              errorMsg += event.error;
+          }
+          
+          avatarStatus.textContent = errorMsg;
+          appendMessage('⚠️ ' + errorMsg);
+        };
+
+        recognition.onend = () => {
+          console.log('Recognition ended, isListening:', isListening, 'attempts:', noSpeechAttempts);
+          
+          // If we're still in listening mode and haven't hit the retry limit, restart
+          if (isListening && noSpeechAttempts < MAX_NO_SPEECH_ATTEMPTS) {
+            console.log('Restarting recognition for continuous capture');
+            setTimeout(() => {
+              if (isListening) {
+                try {
+                  recognition.start();
+                } catch (err) {
+                  console.error('Error restarting:', err);
+                  isListening = false;
+                  stopVoiceRecognition();
+                }
+              }
+            }, 200);
+          } else if (!isListening) {
+            stopVoiceRecognition();
+          }
+        };
+
+        return true;
+      }
+
+      async function startVoiceRecognition() {
+        console.log('startVoiceRecognition called');
+        console.log('Recognition object exists:', !!recognition);
+
+        if (!(await ensureMicrophoneAccess())) {
+          return;
+        }
+
+        if (!recognition) {
+          console.log('Initializing recognition');
+          if (!initVoiceRecognition()) {
+            appendMessage('Voice input is not supported in your browser. Please use text input.');
+            return;
+          }
+        }
+
+        if (isSpeaking) {
+          console.log('Stopping current speech');
+          stopSpeaking();
+        }
+
+        try {
+          console.log('Calling recognition.start()');
+          noSpeechAttempts = 0;
+          isListening = true;
+          recognition.start();
+        } catch (err) {
+          console.error('Error starting recognition:', err);
+          isListening = false;
+          appendMessage('⚠️ Could not start voice input: ' + err.message);
+        }
+      }
+
+      function stopVoiceRecognition() {
+        isListening = false;
+        noSpeechAttempts = 0;
+        avatarCircle.classList.remove('listening');
+        voiceInputBtn.classList.remove('recording');
+        releaseMicrophone();
+        if (chatMode === 'avatar') {
+          avatarStatus.textContent = 'Avatar chat enabled';
+        }
+      }
+
+      function speak(text) {
+        if (!speechSynthesis) {
+          console.log('Speech synthesis not supported');
+          return;
+        }
+
+        // Stop any ongoing speech
+        stopSpeaking();
+
+        currentUtterance = new SpeechSynthesisUtterance(text);
+        currentUtterance.lang = 'en-US';
+        currentUtterance.rate = 1.0;
+        currentUtterance.pitch = 1.0;
+
+        currentUtterance.onstart = () => {
+          isSpeaking = true;
+          avatarCircle.classList.add('talking');
+          avatarCircle.classList.remove('listening');
+          stopVoiceBtn.style.display = 'block';
+          avatarStatus.textContent = 'Speaking...';
+        };
+
+        currentUtterance.onend = () => {
+          isSpeaking = false;
+          avatarCircle.classList.remove('talking');
+          stopVoiceBtn.style.display = 'none';
+          if (chatMode === 'avatar') {
+            avatarStatus.textContent = 'Avatar chat enabled';
+          }
+        };
+
+        currentUtterance.onerror = (event) => {
+          console.error('Speech synthesis error:', event);
+          stopSpeaking();
+        };
+
+        speechSynthesis.speak(currentUtterance);
+      }
+
+      function stopSpeaking() {
+        if (speechSynthesis && isSpeaking) {
+          speechSynthesis.cancel();
+          isSpeaking = false;
+          avatarCircle.classList.remove('talking');
+          stopVoiceBtn.style.display = 'none';
+        }
+      }
+
+      // Voice button event listeners
+      if (voiceInputBtn) {
+        voiceInputBtn.addEventListener('click', async () => {
+          console.log('Voice button clicked');
+          console.log('Chat mode:', chatMode);
+          console.log('Is listening:', isListening);
+          
+          if (chatMode !== 'avatar') {
+            appendMessage('Please enable avatar chat first by clicking "Talk to the avatar doctor".');
+            return;
+          }
+
+          // Check for browser support
+          if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            appendMessage('⚠️ Voice input is not supported in your browser. Please use Chrome, Edge, or Safari, or type your message instead.');
+            console.error('Speech recognition not supported');
+            return;
+          }
+
+          if (isListening) {
+            console.log('Stopping recognition');
+            try {
+              isListening = false;
+              recognition.stop();
+            } catch (err) {
+              console.error('Error stopping recognition:', err);
+            }
+            stopVoiceRecognition();
+          } else {
+            console.log('Starting recognition');
+            // Show instruction
+            appendMessage('🎤 Microphone is now active. Start speaking... (Will stop automatically when you finish)', 'system');
+            await startVoiceRecognition();
+          }
+        });
+      }
+
+      if (stopVoiceBtn) {
+        stopVoiceBtn.addEventListener('click', () => {
+          stopSpeaking();
+        });
+      }
+
+      function enableAvatarChat() {
+        chatMode = "avatar";
+        chatActive = true;
+        input.disabled = false;
+        sendBtn.disabled = false;
+        setQuickReplies([]);
+        avatarToggleBtn.textContent = "Stop avatar chat";
+        avatarStatus.textContent = "Avatar chat enabled";
+        input.placeholder = "Ask the virtual doctor avatar a question...";
+        voiceControls.classList.add("active");
+
+        appendMessage(
+          "You're now talking to the virtual GP avatar with voice support! 🎤 Press the microphone button to speak, or type your message. I'm still an AI and not a real doctor, and I can't provide emergency care. If you feel unsafe at any point, please seek urgent help."
+        );
+      }
+
+      // ------------------ Flow: Start & Safety Gate ------------------
+
+      function startChat() {
+        appendMessage(
+          "Hi, I’m an information and support chatbot for mental health.\n\n" +
+            "I can help you think through how you’ve been feeling and go through standard questionnaires used in GP surgeries for anxiety and depression (GAD‑7 and PHQ‑9). I’ll then give you a summary you can share with a health professional.\n\n" +
+            "I’m not a doctor and I can’t give you a formal diagnosis or emergency care. If at any point it sounds like you might be at risk of harm, I’ll stop and guide you to urgent help."
+        );
+        askAgeCheck();
+      }
+
+      function askAgeCheck() {
+        ask({
+          id: "age-check",
+          text: "First, I need to check a couple of safety questions.\n\nAre you 18 or over?",
+          options: [
+            { value: "yes", label: "Yes" },
+            { value: "no", label: "No" },
+          ],
+          onAnswer: (value) => {
+            const v = value.toLowerCase();
+            const yes = v === "1" || v.startsWith("y");
+            if (yes) {
+              data.ageOver18 = true;
+              askRiskQ1();
+            } else {
+              data.ageOver18 = false;
+              appendMessage(
+                "I’m designed for adults only and I’m not able to safely assess people under 18.\n\n" +
+                  "Please contact your GP, school nurse, or local child and adolescent mental health service for support. If you are in immediate danger, contact your local emergency services.\n\n" +
+                  "I’ll end the chat here."
+              );
+              disableInput(true);
+            }
+          },
+        });
+      }
+
+      function askRiskQ1() {
+        ask({
+          id: "risk-q1",
+          text:
+            "Thank you. Now some important safety questions. Please answer honestly – your safety comes first.\n\n" +
+            "Right now:\n\n" +
+            "1) Do you have any thoughts of ending your life, hurting yourself, or hurting someone else?",
+          options: yesNoOptions,
+          onAnswer: (value) => {
+            const v = value.toLowerCase();
+            data.risk.q1 = v === "1" || v.startsWith("y");
+            askRiskQ2();
+          },
+        });
+      }
+
+      function askRiskQ2() {
+        ask({
+          id: "risk-q2",
+          text:
+            "Do you feel so physically unwell that you might need urgent medical help? (For example, chest pain, trouble breathing, feeling you might pass out, or sudden confusion.)",
+          options: yesNoOptions,
+          onAnswer: (value) => {
+            const v = value.toLowerCase();
+            data.risk.q2 = v === "1" || v.startsWith("y");
+            askRiskQ3();
+          },
+        });
+      }
+
+      function askRiskQ3() {
+        ask({
+          id: "risk-q3",
+          text:
+            "Have you been seeing or hearing things that other people can’t, or holding strong beliefs that others say are very out of touch with reality?",
+          options: yesNoOptions,
+          onAnswer: (value) => {
+            const v = value.toLowerCase();
+            data.risk.q3 = v === "1" || v.startsWith("y");
+
+            if (data.risk.q1 || data.risk.q2 || data.risk.q3) {
+              showImmediateCrisisMessage();
+            } else {
+              askOpenStory();
+            }
+          },
+        });
+      }
+
+      function showImmediateCrisisMessage() {
+        appendMessage(
+          "Thank you for telling me that – I’m really glad you reached out.\n\n" +
+            "Because of what you’ve said, it’s not safe for me to continue this online questionnaire.\n\n" +
+            "It’s really important you get urgent help from a human professional now:\n" +
+            "• Contact your GP or out‑of‑hours GP service.\n" +
+            "• If you feel you might act on these thoughts or are in immediate danger, contact emergency services or your local crisis team straight away.\n" +
+            "• You can also contact a 24/7 listening service or helpline if available in your area.\n\n" +
+            "I’ll end the chat here so you can focus on getting that support."
+        );
+        disableInput(true);
+      }
+
+      // ------------------ Flow: Calgary–Cambridge (ICE) ------------------
+
+      function askOpenStory() {
+        ask({
+          id: "ice-story",
+          text: "In your own words, what has been bothering you most recently?",
+          placeholder: "Type a short description...",
+          onAnswer: (value) => {
+            data.ice.story = value;
+            appendMessage("Thank you for sharing that. It sounds like this has been really tough for you.");
+            askIdeas();
+          },
+        });
+      }
+
+      function askIdeas() {
+        ask({
+          id: "ice-ideas",
+          text: "What do you think might be going on for you at the moment?",
+          onAnswer: (value) => {
+            data.ice.ideas = value;
+            askConcerns();
+          },
+        });
+      }
+
+      function askConcerns() {
+        ask({
+          id: "ice-concerns",
+          text:
+            "Is there anything you’re particularly worried this might be? (For example, ‘I’m worried this means I’m seriously ill’ or ‘I’m worried I’m losing control’.)",
+          onAnswer: (value) => {
+            data.ice.concerns = value;
+            askExpectations();
+          },
+        });
+      }
+
+      function askExpectations() {
+        ask({
+          id: "ice-expectations",
+          text:
+            "What were you hoping I could help with today? (For example, ‘understand what’s happening’, ‘get tips for coping’, or ‘decide if I need to see my GP’.)",
+          onAnswer: (value) => {
+            data.ice.expectations = value;
+            askHistoryDuration();
+          },
+        });
+      }
+
+      // ------------------ Flow: Brief History & Context ------------------
+
+      function askHistoryDuration() {
+        ask({
+          id: "history-duration",
+          text:
+            "I’ll ask a few short questions about how long this has been going on and how it’s affecting you.\n\n" +
+            "Roughly how long have you been feeling this way?\n\n" +
+            "1) A few days\n2) A few weeks\n3) A few months\n4) More than a year",
+          options: [
+            { value: "1", label: "A few days" },
+            { value: "2", label: "A few weeks" },
+            { value: "3", label: "A few months" },
+            { value: "4", label: "More than a year" },
+          ],
+          onAnswer: (value) => {
+            const n = parseScaleAnswer(value, 1, 4);
+            if (n === null) return;
+            data.history.duration = n;
+            askHistoryTriggers();
+          },
+        });
+      }
+
+      function askHistoryTriggers() {
+        ask({
+          id: "history-triggers",
+          text:
+            "Did anything in particular seem to start or worsen things? (For example: work or study stress, relationship or family issues, bereavement, money worries, physical health problems.)",
+          onAnswer: (value) => {
+            data.history.triggers = value;
+            askHistoryImpact();
+          },
+        });
+      }
+
+      function askHistoryImpact() {
+        ask({
+          id: "history-impact",
+          text:
+            "How much are these difficulties affecting your day‑to‑day life (work, study, relationships, and looking after yourself)?\n\n" +
+            "1) Not at all\n2) A little\n3) Quite a lot\n4) A great deal",
+          options: [
+            { value: "1", label: "Not at all" },
+            { value: "2", label: "A little" },
+            { value: "3", label: "Quite a lot" },
+            { value: "4", label: "A great deal" },
+          ],
+          onAnswer: (value) => {
+            const n = parseScaleAnswer(value, 1, 4);
+            if (n === null) return;
+            data.history.impact = n;
+            askHistorySupport();
+          },
+        });
+      }
+
+      function askHistorySupport() {
+        ask({
+          id: "history-support",
+          text:
+            "Who do you have around you for support at the moment?\n\n" +
+            "1) Family\n2) Friends\n3) Colleagues or peers\n4) Community or faith group\n5) I don’t really have anyone right now",
+          options: [
+            { value: "1", label: "Family" },
+            { value: "2", label: "Friends" },
+            { value: "3", label: "Colleagues or peers" },
+            { value: "4", label: "Community or faith group" },
+            { value: "5", label: "I don’t really have anyone right now" },
+          ],
+          onAnswer: (value) => {
+            const n = parseScaleAnswer(value, 1, 5);
+            if (n === null) return;
+            data.history.support = n;
+            askHistorySubstances();
+          },
+        });
+      }
+
+      function askHistorySubstances() {
+        ask({
+          id: "history-substances",
+          text:
+            "Do you feel that alcohol, drugs, or gambling are making things worse at the moment?\n\n" +
+            "1) Yes\n2) No\n3) Prefer not to say",
+          options: [
+            { value: "1", label: "Yes" },
+            { value: "2", label: "No" },
+            { value: "3", label: "Prefer not to say" },
+          ],
+          onAnswer: (value) => {
+            const n = parseScaleAnswer(value, 1, 3);
+            if (n === null) return;
+            data.history.substances = n;
+            startPHQ9();
+          },
+        });
+      }
+
+      // ------------------ Flow: PHQ‑9 ------------------
+
+      function startPHQ9() {
+        appendMessage(
+          "I’m going to ask you some questions from a standard depression questionnaire used in GP practices, called PHQ‑9.\n\n" +
+            "For each statement, think about the last 2 weeks and choose how often you’ve been bothered by the problem.\n\n" +
+            "Please answer with:\n0) Not at all\n1) Several days\n2) More than half the days\n3) Nearly every day"
+        );
+        askPHQ9Question(0);
+      }
+
+      function askPHQ9Question(index) {
+        const qText = phq9Questions[index];
+        ask({
+          id: "phq9-q" + (index + 1),
+          text:
+            "Over the last 2 weeks, how often have you been bothered by: " +
+            qText +
+            "?\n\n0) Not at all\n1) Several days\n2) More than half the days\n3) Nearly every day",
+          options: [
+            { value: "0", label: "0 – Not at all" },
+            { value: "1", label: "1 – Several days" },
+            { value: "2", label: "2 – More than half the days" },
+            { value: "3", label: "3 – Nearly every day" },
+          ],
+          onAnswer: (value) => {
+            const n = parseScaleAnswer(value, 0, 3);
+            if (n === null) return;
+            data.phq9[index] = n;
+
+            if (index === 8) {
+              if (n > 0) {
+                showPHQ9SuicidalityMessage();
+              } else {
+                askPHQ9Impact();
+              }
+            } else {
+              askPHQ9Question(index + 1);
+            }
+          },
+        });
+      }
+
+      function showPHQ9SuicidalityMessage() {
+        appendMessage(
+          "Thank you for answering that – I know it can be very hard to talk about these thoughts.\n\n" +
+            "Because you’ve had thoughts about being better off dead or hurting yourself, I’m not able to safely continue this questionnaire.\n\n" +
+            "It’s really important you speak to a human professional now:\n" +
+            "• Contact your GP or out‑of‑hours GP service.\n" +
+            "• If you feel you might act on these thoughts, contact emergency services or your local crisis team right away.\n" +
+            "• You can also contact a 24‑hour listening service or helpline if that’s available to you.\n\n" +
+            "I’ll end the chat here so you can focus on getting support."
+        );
+        disableInput(true);
+      }
+
+      function askPHQ9Impact() {
+        ask({
+          id: "phq9-impact",
+          text:
+            "If you checked off any of the problems above, how difficult have these made it for you to do your work, take care of things at home, or get along with other people?\n\n" +
+            "1) Not difficult at all\n2) Somewhat difficult\n3) Very difficult\n4) Extremely difficult",
+          options: [
+            { value: "1", label: "Not difficult at all" },
+            { value: "2", label: "Somewhat difficult" },
+            { value: "3", label: "Very difficult" },
+            { value: "4", label: "Extremely difficult" },
+          ],
+          onAnswer: (value) => {
+            const n = parseScaleAnswer(value, 1, 4);
+            if (n === null) return;
+            data.phq9Impact = n;
+            startGAD7();
+          },
+        });
+      }
+
+      // ------------------ Flow: GAD‑7 ------------------
+
+      function startGAD7() {
+        appendMessage(
+          "Next is a short questionnaire about anxiety, called GAD‑7.\n\n" +
+            "Again, think about the last 2 weeks and choose how often you’ve been bothered by each problem.\n\n" +
+            "Please answer with:\n0) Not at all\n1) Several days\n2) Over half the days\n3) Nearly every day"
+        );
+        askGAD7Question(0);
+      }
+
+      function askGAD7Question(index) {
+        const qText = gad7Questions[index];
+        ask({
+          id: "gad7-q" + (index + 1),
+          text:
+            "Over the last 2 weeks, how often have you been bothered by: " +
+            qText +
+            "?\n\n0) Not at all\n1) Several days\n2) Over half the days\n3) Nearly every day",
+          options: [
+            { value: "0", label: "0 – Not at all" },
+            { value: "1", label: "1 – Several days" },
+            { value: "2", label: "2 – Over half the days" },
+            { value: "3", label: "3 – Nearly every day" },
+          ],
+          onAnswer: (value) => {
+            const n = parseScaleAnswer(value, 0, 3);
+            if (n === null) return;
+            data.gad7[index] = n;
+
+            if (index === 6) {
+              askGAD7Impact();
+            } else {
+              askGAD7Question(index + 1);
+            }
+          },
+        });
+      }
+
+      function askGAD7Impact() {
+        ask({
+          id: "gad7-impact",
+          text:
+            "If you checked off any of the problems above, how difficult have these made it for you to do your work, take care of things at home, or get along with other people?\n\n" +
+            "1) Not difficult at all\n2) Somewhat difficult\n3) Very difficult\n4) Extremely difficult",
+          options: [
+            { value: "1", label: "Not difficult at all" },
+            { value: "2", label: "Somewhat difficult" },
+            { value: "3", label: "Very difficult" },
+            { value: "4", label: "Extremely difficult" },
+          ],
+          onAnswer: (value) => {
+            const n = parseScaleAnswer(value, 1, 4);
+            if (n === null) return;
+            data.gad7Impact = n;
+            showScoresAndAdvice();
+          },
+        });
+      }
+
+      // ------------------ Scoring & Advice ------------------
+
+      function classifyPhq9(total) {
+        if (total <= 4) return "minimal";
+        if (total <= 9) return "mild";
+        if (total <= 14) return "moderate";
+        if (total <= 19) return "moderately severe";
+        return "severe";
+      }
+
+      function classifyGad7(total) {
+        if (total <= 4) return "minimal";
+        if (total <= 9) return "mild";
+        if (total <= 14) return "moderate";
+        return "severe";
+      }
+
+      function hasNonEmergencyRedFlags(phq9Total, gad7Total) {
+        const severeDepression = phq9Total >= 20;
+        const severeAnxiety = gad7Total >= 15;
+        const highImpactPHQ = data.phq9Impact >= 3;
+        const highImpactGAD = data.gad7Impact >= 3;
+        const historyGreatImpact = data.history.impact === 4;
+        return (
+          severeDepression ||
+          severeAnxiety ||
+          highImpactPHQ ||
+          highImpactGAD ||
+          historyGreatImpact
+        );
+      }
+
+      function buildAdvice(phq9Total, gad7Total) {
+        const phqSeverity = classifyPhq9(phq9Total);
+        const gadSeverity = classifyGad7(gad7Total);
+
+        const minimal = phq9Total < 5 && gad7Total < 5;
+        const mild = !minimal && phq9Total <= 9 && gad7Total <= 9;
+        const moderate =
+          phq9Total === 0
+            ? gad7Total >= 10 && gad7Total <= 14
+            : gad7Total === 0
+            ? phq9Total >= 10 && phq9Total <= 14
+            : (phq9Total >= 10 && phq9Total <= 14) ||
+              (gad7Total >= 10 && gad7Total <= 14);
+        const severe = phq9Total >= 15 || gad7Total >= 15;
+
+        let advice = "";
+
+        if (minimal) {
+          advice +=
+            "Your answers suggest minimal symptoms of anxiety or depression at the moment.\n\n" +
+            "It’s still important to look after your mental health. You might find it helpful to:\n" +
+            "• Keep a regular sleep routine and aim for enough rest.\n" +
+            "• Do some regular physical activity, even a daily walk.\n" +
+            "• Stay connected with friends, family, or community.\n" +
+            "• Use simple relaxation or breathing exercises if you feel stressed.\n\n" +
+            "If things worsen, or you start to feel low or anxious most days, or have any thoughts of harming yourself, please contact your GP or local health services.";
+        } else if (mild && !moderate && !severe) {
+          advice +=
+            "Your answers suggest mild symptoms of anxiety and/or depression.\n\n" +
+            "For many people, the first step is to focus on lifestyle and self‑help approaches, such as:\n" +
+            "• Regular activity (for example, walking most days of the week).\n" +
+            "• A consistent sleep routine and limiting screens and caffeine before bed.\n" +
+            "• Reducing alcohol or recreational drugs, which can worsen mood and anxiety.\n" +
+            "• Scheduling pleasant or meaningful activities, even in small steps.\n" +
+            "• Trying relaxation, mindfulness, or breathing exercises.\n\n" +
+            "If your symptoms don’t improve over the next few weeks, or they get worse, it’s a good idea to book an appointment with your GP to discuss further support.";
+        } else if (moderate && !severe) {
+          advice +=
+            "Your scores suggest moderate symptoms of anxiety and/or depression.\n\n" +
+            "At this level, people often benefit from:\n" +
+            "• Talking therapies (such as cognitive behavioural therapy), usually arranged through your GP or local mental health services.\n" +
+            "• Continuing with lifestyle changes – activity, sleep, social contact, and self‑help strategies.\n" +
+            "• In some cases, your GP may discuss medication for anxiety or depression, depending on your situation and preferences.\n\n" +
+            "It would be sensible to book a GP appointment to talk through these options. You can take a summary of today’s answers with you.";
+        } else if (severe) {
+          advice +=
+            "Your scores suggest more severe symptoms of anxiety and/or depression.\n\n" +
+            "At this level, it’s important to get professional support rather than trying to manage it alone.\n\n" +
+            "Your GP may discuss a combination of:\n" +
+            "• Talking therapy (such as CBT or other structured therapy).\n" +
+            "• Medication for depression and/or anxiety.\n" +
+            "• Lifestyle changes and self‑help strategies.\n\n" +
+            "Please book a GP appointment as soon as you can to discuss these results and how you’re feeling. If at any point you develop thoughts of harming yourself or others, or feel things are getting out of control, seek urgent help.";
+        } else {
+          advice +=
+            "Your answers show some symptoms of anxiety and/or depression. It may help to combine lifestyle strategies with support from your GP or local mental health services, depending on how you feel and how much this affects your day‑to‑day life.";
+        }
+
+        return { phqSeverity, gadSeverity, advice };
+      }
+
+      function showScoresAndAdvice() {
+        const phq9Total = data.phq9.reduce((sum, n) => sum + (n || 0), 0);
+        const gad7Total = data.gad7.reduce((sum, n) => sum + (n || 0), 0);
+
+        const { phqSeverity, gadSeverity, advice } = buildAdvice(phq9Total, gad7Total);
+        const nonEmergencyRedFlags = hasNonEmergencyRedFlags(phq9Total, gad7Total);
+
+        appendMessage(
+          "Thanks for answering those questions.\n\n" +
+            "Based on your responses:\n" +
+            "• Your depression questionnaire (PHQ‑9) score is: " +
+            phq9Total +
+            ", which usually falls in the " +
+            phqSeverity +
+            " range.\n" +
+            "• Your anxiety questionnaire (GAD‑7) score is: " +
+            gad7Total +
+            ", which usually falls in the " +
+            gadSeverity +
+            " range.\n\n" +
+            "These scores don’t give a formal diagnosis, but they do give a useful indication of how severe your symptoms might be."
+        );
+
+        appendMessage(advice);
+
+        if (nonEmergencyRedFlags) {
+          appendMessage(
+            "Because of the level of your scores and/or how much this is affecting your daily life, it would be a good idea to arrange a non‑urgent appointment with your GP soon to talk this through in more detail."
+          );
+        }
+
+        avatarChatEnabled = true;
+        if (avatarToggleBtn) {
+          avatarToggleBtn.disabled = false;
+        }
+        appendMessage(
+          "If you’d like, you can now ask follow-up questions to a virtual doctor avatar. Use the “Talk to the avatar doctor” button above. Remember this is not a real doctor."
+        );
+
+        askWrittenSummaryChoice();
+      }
+
+      // ------------------ Summary & Closing ------------------
+
+      function mapDuration(n) {
+        switch (n) {
+          case 1:
+            return "A few days";
+          case 2:
+            return "A few weeks";
+          case 3:
+            return "A few months";
+          case 4:
+            return "More than a year";
+          default:
+            return "Not specified";
+        }
+      }
+
+      function mapImpact(n) {
+        switch (n) {
+          case 1:
+            return "Not at all";
+          case 2:
+            return "A little";
+          case 3:
+            return "Quite a lot";
+          case 4:
+            return "A great deal";
+          default:
+            return "Not specified";
+        }
+      }
+
+      function mapSupport(n) {
+        switch (n) {
+          case 1:
+            return "Family";
+          case 2:
+            return "Friends";
+          case 3:
+            return "Colleagues or peers";
+          case 4:
+            return "Community or faith group";
+          case 5:
+            return "Doesn’t really have anyone right now";
+          default:
+            return "Not specified";
+        }
+      }
+
+      function mapSubstances(n) {
+        switch (n) {
+          case 1:
+            return "Yes";
+          case 2:
+            return "No";
+          case 3:
+            return "Prefer not to say";
+          default:
+            return "Not specified";
+        }
+      }
+
+      function mapFunctionImpact(n) {
+        switch (n) {
+          case 1:
+            return "Not difficult at all";
+          case 2:
+            return "Somewhat difficult";
+          case 3:
+            return "Very difficult";
+          case 4:
+            return "Extremely difficult";
+          default:
+            return "Not specified";
+        }
+      }
+
+      function askWrittenSummaryChoice() {
+        ask({
+          id: "summary-choice",
+          text:
+            "Would you like a written summary of your answers and scores that you can save or show to a professional?",
+          options: [
+            { value: "yes", label: "Yes, show me a summary" },
+            { value: "no", label: "No, that’s OK" },
+          ],
+          onAnswer: (value) => {
+            const v = value.toLowerCase();
+            const yes = v === "1" || v.startsWith("y");
+            if (yes) {
+              showWrittenSummary();
+            }
+            showFinalSafetyReminder();
+          },
+        });
+      }
+
+      function showWrittenSummary() {
+        const phq9Total = data.phq9.reduce((sum, n) => sum + (n || 0), 0);
+        const gad7Total = data.gad7.reduce((sum, n) => sum + (n || 0), 0);
+        const phqSeverity = classifyPhq9(phq9Total);
+        const gadSeverity = classifyGad7(gad7Total);
+
+        const summaryText =
+          "Summary of mental health check‑in\n\n" +
+          "• Main difficulties (your words): " +
+          (data.ice.story || "Not specified") +
+          "\n" +
+          "• How long this has been going on: " +
+          mapDuration(data.history.duration) +
+          "\n" +
+          "• What you think is going on: " +
+          (data.ice.ideas || "Not specified") +
+          "\n" +
+          "• What you’re particularly worried about: " +
+          (data.ice.concerns || "Not specified") +
+          "\n" +
+          "• What you were hoping for from today: " +
+          (data.ice.expectations || "Not specified") +
+          "\n" +
+          "• Impact on daily life: " +
+          mapImpact(data.history.impact) +
+          "\n" +
+          "• Support available: " +
+          mapSupport(data.history.support) +
+          "\n" +
+          "• Alcohol/drugs/gambling making things worse: " +
+          mapSubstances(data.history.substances) +
+          "\n" +
+          "• PHQ‑9 score: " +
+          phq9Total +
+          " → " +
+          phqSeverity +
+          "\n" +
+          "• PHQ‑9 functional impact: " +
+          mapFunctionImpact(data.phq9Impact) +
+          "\n" +
+          "• GAD‑7 score: " +
+          gad7Total +
+          " → " +
+          gadSeverity +
+          "\n" +
+          "• GAD‑7 functional impact: " +
+          mapFunctionImpact(data.gad7Impact) +
+          "\n\n" +
+          "You can copy or screenshot this summary to show your GP or another health professional. It is not a formal diagnosis but may help guide the conversation.";
+
+        appendMessage(summaryText);
+      }
+
+      function showFinalSafetyReminder() {
+        appendMessage(
+          "Before we finish, a quick reminder:\n\n" +
+            "• I can’t give a formal diagnosis or replace a consultation with your GP.\n" +
+            "• If you start to have thoughts of harming yourself or others, or feel you might be in immediate danger, please seek urgent help from emergency services, your local crisis team, or out‑of‑hours GP.\n\n" +
+            "Thank you for talking with me today."
+        );
+        disableInput(false);
+        
+        // Save chat data to backend
+        saveChatData();
+      }
+
+      async function saveChatData() {
+        try {
+          const chatData = {
+            sessionId,
+            ...data,
+            avatarChatHistory,
+            timestamp: new Date().toISOString()
+          };
+
+          console.log('Saving chat data to Google Sheets...', chatData);
+
+          const res = await fetch("/api/save-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data: chatData }),
+          });
+
+          if (!res.ok) {
+            console.error("Failed to save chat data:", res.status, res.statusText);
+            const errorText = await res.text();
+            console.error("Error response:", errorText);
+          } else {
+            console.log("Chat data saved successfully");
+          }
+        } catch (err) {
+          console.error("Error saving chat data:", err);
+        }
+      }
+
+      // ------------------ Optional LLM integration (ChatGPT backend) ------------------
+
+      async function callBackendLLM({ context, history, userMessage }) {
+        const payload = {
+          context: context || "",
+          history: history || [],
+          userMessage,
+        };
+
+        const res = await fetch("/api/chatgpt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          throw new Error("Backend returned " + res.status);
+        }
+
+        const json = await res.json();
+        return json.reply || "";
+      }
+
+      function buildAvatarContext() {
+        const phq9Total = (data.phq9 || []).reduce((s, n) => s + (n || 0), 0);
+        const gad7Total = (data.gad7 || []).reduce((s, n) => s + (n || 0), 0);
+        const phqSeverity = classifyPhq9(phq9Total);
+        const gadSeverity = classifyGad7(gad7Total);
+
+        const durationText = mapDuration(data.history.duration);
+        const impactText = mapImpact(data.history.impact);
+
+        return (
+          "This adult user has gone through a structured primary care mental health intake " +
+          "(Calgary–Cambridge style ICE, brief history, PHQ-9 and GAD-7). " +
+          "PHQ-9 score: " +
+          phq9Total +
+          " (" +
+          phqSeverity +
+          "). " +
+          "GAD-7 score: " +
+          gad7Total +
+          " (" +
+          gadSeverity +
+          "). " +
+          "Duration: " +
+          durationText +
+          ". Impact on daily life: " +
+          impactText +
+          ". " +
+          "They previously denied current suicidal/self-harm thoughts in the structured flow, but you must still check for risk in free-text. " +
+          "Use this as background only; do not repeat all of it verbatim to the user."
+        );
+      }
+
+      async function handleAvatarChat(userText) {
+        if (sessionLocked) {
+          appendMessage(
+            "Because of earlier safety concerns, I can’t continue chatting in avatar mode. Please seek urgent help from a human professional."
+          );
+          return;
+        }
+
+        if (!userText) return;
+
+        try {
+          // Start avatar animation
+          if (avatarCircle) {
+            avatarCircle.classList.add("talking");
+          }
+
+          const context = buildAvatarContext();
+          const reply = await callBackendLLM({
+            context,
+            history: avatarChatHistory,
+            userMessage: userText,
+          });
+
+          avatarChatHistory.push({ role: "user", content: userText });
+          avatarChatHistory.push({ role: "assistant", content: reply });
+
+          appendMessage(reply);
+
+          // Speak the reply aloud
+          speak(reply);
+          
+          // Save chat data after each avatar interaction
+          saveChatData();
+        } catch (err) {
+          console.error(err);
+          if (avatarCircle) {
+            avatarCircle.classList.remove("talking");
+          }
+          appendMessage(
+            "Sorry – there was a problem talking to the avatar right now. Please try again later, or contact your GP if you need support."
+          );
+        }
+      }
+
+      // Kick everything off
+      startChat();
+    })();
+  </script>
+</body>
+</html>
